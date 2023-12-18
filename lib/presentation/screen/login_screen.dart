@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:person_app/data/model/person_model.dart';
 import 'package:person_app/presentation/widget/custom_text_field.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,6 +16,9 @@ class _LoginScreenState extends State<LoginScreen> {
   String username = '';
   String phone = '';
   String email = '';
+  String picture = '';
+  String longitude = '';
+  String latitude = '';
 
   @override
   void initState() {
@@ -70,8 +74,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 value: phone,
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                  onPressed: () {}, child: const Text('Get Location'))
+              SizedBox(
+                height: 50,
+                width: MediaQuery.of(context).size.width * 1.0,
+                child: ElevatedButton(
+                  onPressed: () {
+                    openGoogleMaps(latitude, longitude);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xff002D62),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8),)
+                    
+                  ),
+                  child:  const Text('Get Location',style: TextStyle(color: Colors.white),),
+                ),
+              ),
             ],
           ),
         ),
@@ -81,17 +98,39 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> randomPerson() async {
     final Dio dio = Dio();
-    try {
-      final Response response = await dio.get('https://randomuser.me/api/');
 
-      final Results model = Results.fromJson(response.data);
+    final Response response = await dio.get('https://randomuser.me/api/');
+
+    final Map<String, dynamic> data = response.data;
+    final List<dynamic> results = data['results'];
+
+    if (results.isNotEmpty) {
+      final Results model = Results.fromJson(results[0]);
       name = model.name?.first ?? '';
       username = model.login?.username ?? '';
       email = model.email ?? '';
       phone = model.phone ?? '';
+      picture = model.picture?.medium ?? '';
+      latitude = model.location?.coordinates?.latitude ?? '';
+      longitude = model.location?.coordinates?.longitude ?? '';
+
       setState(() {});
-    } catch (e) {
-      print('Ошибка: $e');
+    } else {
+      print('Пусто');
+    }
+  }
+
+  Future<void> openGoogleMaps(String? latitude, String? longitude) async {
+    if (latitude != null && longitude != null) {
+      String url =
+          'https://www.google.com/maps/search/?api=1&query=$latitude,$longitude';
+      // ignore: deprecated_member_use
+      if (await canLaunch(url)) {
+        // ignore: deprecated_member_use
+        await launch(url);
+      } else {
+        print('Could not launch $url');
+      }
     }
   }
 }
